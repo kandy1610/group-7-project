@@ -1,7 +1,8 @@
-let users = [{
-  "name": "Minh Ky",
-  "email": "ky@example.com"
-}
+let users = [
+  {
+    name: "Minh Ky",
+    email: "ky@example.com",
+  },
 ];
 
 exports.getUsers = (req, res) => {
@@ -11,8 +12,15 @@ exports.getUsers = (req, res) => {
 exports.addUser = (req, res) => {
   const newUser = req.body;
   if (!newUser.name || !newUser.email) {
-    return res.status(400).json({ message: "thông tin người dùng!" });
+    return res.status(400).json({ message: "Thiếu thông tin người dùng!" });
   }
-  users.push(newUser);
-  res.status(201).json(newUser);
+
+  // THÊM ID cho user
+  const userWithId = {
+    id: Date.now(), // Tạo ID duy nhất
+    ...newUser,
+  };
+
+  users.push(userWithId);
+  res.status(201).json(userWithId);
 };
