@@ -1,23 +1,11 @@
 const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
-require("dotenv").config();
-
+const cors = require("cors"); // THÊM DÒNG NÀY
 const app = express();
 const userRoutes = require("./routes/user");
 
-// DEBUG: Kiểm tra biến môi trường
-console.log("MONGO_URI:", process.env.MONGO_URI);
-console.log("Current directory:", __dirname);
-
+// THÊM CORS MIDDLEWARE
 app.use(cors());
 app.use(express.json());
-
-// KẾT NỐI MONGODB
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Đã kết nối MongoDB Atlas"))
-  .catch((err) => console.error("❌ Lỗi kết nối MongoDB:", err));
 
 // Route chính để test
 app.get("/", (req, res) => {

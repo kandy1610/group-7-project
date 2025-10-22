@@ -1,39 +1,26 @@
-const User = require("../models/User");
+let users = [
+  {
+    name: "Minh Ky",
+    email: "ky@example.com",
+  },
+];
 
-// GET all users - LẤY TẤT CẢ USER TỪ MONGODB
-exports.getUsers = async (req, res) => {
-  try {
-    const users = await User.find();
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+exports.getUsers = (req, res) => {
+  res.json(users);
 };
 
-// POST new user - THÊM USER MỚI VÀO MONGODB
-exports.addUser = async (req, res) => {
-  const { name, email } = req.body;
-
-  // Validation
-  if (!name || !email) {
+exports.addUser = (req, res) => {
+  const newUser = req.body;
+  if (!newUser.name || !newUser.email) {
     return res.status(400).json({ message: "Thiếu thông tin người dùng!" });
   }
 
-  try {
-    // Tạo user mới - MongoDB sẽ tự tạo _id
-    const newUser = new User({
-      name: name,
-      email: email,
-    });
+  // THÊM ID cho user
+  const userWithId = {
+    id: Date.now(), // Tạo ID duy nhất
+    ...newUser,
+  };
 
-    // Lưu vào database
-    const savedUser = await newUser.save();
-    res.status(201).json(savedUser);
-  } catch (err) {
-    // Xử lý lỗi duplicate email
-    if (err.code === 11000) {
-      return res.status(400).json({ message: "Email đã tồn tại!" });
-    }
-    res.status(400).json({ message: err.message });
-  }
+  users.push(userWithId);
+  res.status(201).json(userWithId);
 };
