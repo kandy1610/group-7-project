@@ -7,31 +7,62 @@ const AddUser = ({ onUserAdded }) => {
     email: ''
   });
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
+    // Clear error khi user bắt đầu sửa
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Validation function
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Validate name
+    if (!formData.name.trim()) {
+      newErrors.name = 'Tên không được để trống';
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = 'Tên phải có ít nhất 2 ký tự';
+    }
+
+    // Validate email
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email không được để trống';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email không hợp lệ';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.name.trim() || !formData.email.trim()) {
-      alert('Vui lòng điền đầy đủ thông tin');
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
     
     try {
-      // SỬA URL: bỏ /api
       const response = await axios.post('http://localhost:3000/users', formData);
       console.log('User added:', response.data);
       
       // Reset form
       setFormData({ name: '', email: '' });
+      setErrors({});
       
       // Gọi callback để refresh danh sách users
       if (onUserAdded) {
@@ -41,7 +72,8 @@ const AddUser = ({ onUserAdded }) => {
       alert('Thêm user thành công!');
     } catch (error) {
       console.error('Error adding user:', error);
-      alert('Lỗi khi thêm user: ' + (error.response?.data?.message || error.message));
+      const errorMessage = error.response?.data?.message || error.message;
+      setErrors({ submit: `Lỗi khi thêm user: ${errorMessage}` });
     } finally {
       setLoading(false);
     }
@@ -60,8 +92,9 @@ const AddUser = ({ onUserAdded }) => {
             value={formData.name}
             onChange={handleChange}
             placeholder="Nhập tên user"
-            required
+            className={errors.name ? 'error' : ''}
           />
+          {errors.name && <span className="error-message">{errors.name}</span>}
         </div>
         
         <div className="form-group">
@@ -73,16 +106,19 @@ const AddUser = ({ onUserAdded }) => {
             value={formData.email}
             onChange={handleChange}
             placeholder="Nhập email"
-            required
+            className={errors.email ? 'error' : ''}
           />
+          {errors.email && <span className="error-message">{errors.email}</span>}
         </div>
+        
+        {errors.submit && <div className="error-message submit-error">{errors.submit}</div>}
         
         <button 
           type="submit" 
           disabled={loading}
-          className="submit-btn"
+          className={`submit-btn ${loading ? 'loading' : ''}`}
         >
-          {loading ? 'Đang thêm...' : 'Thêm User'}
+          {loading ? '🔄 Đang thêm...' : '➕ Thêm User'}
         </button>
       </form>
     </div>
