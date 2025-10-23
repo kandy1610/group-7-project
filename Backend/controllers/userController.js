@@ -1,99 +1,106 @@
+// controllers/userController.js
 const User = require("../models/User");
+const mongoose = require("mongoose");
 
-// Mảng tạm dùng khi chưa có MongoDB
-let users = [];
-
-/* =============================
-   GET all users - LẤY TOÀN BỘ USER
-============================= */
+// GET all users
 exports.getUsers = async (req, res) => {
   try {
-    // Nếu có model MongoDB thì lấy từ DB
-    if (User) {
-      const usersFromDB = await User.find();
-      return res.json(usersFromDB);
-    }
-
-    // Nếu chưa có DB, trả về mảng tạm
+    const users = await User.find();
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-/* =============================
-   POST - THÊM USER MỚI
-============================= */
+// ADD new user
 exports.addUser = async (req, res) => {
-  const { name, email } = req.body;
-
-  if (!name || !email)
-    return res.status(400).json({ message: "Thiếu thông tin người dùng!" });
-
   try {
-    if (User) {
-      // Tạo và lưu vào MongoDB
-      const newUser = new User({ name, email });
-      const savedUser = await newUser.save();
-      return res.status(201).json(savedUser);
+    console.log("ADD USER - Request body:", req.body);
+
+    const { name, email } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: "Name and email are required" });
     }
 
-    // Nếu chưa có DB, lưu vào mảng tạm
-    const newUser = { id: Date.now().toString(), name, email };
-    users.push(newUser);
-    res.status(201).json(newUser);
+    const user = new User({ name, email });
+    const savedUser = await user.save();
+
+    res.status(201).json(savedUser);
   } catch (err) {
-    if (err.code === 11000)
-      return res.status(400).json({ message: "Email đã tồn tại!" });
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
     res.status(400).json({ message: err.message });
   }
 };
 
-/* =============================
-   PUT - CẬP NHẬT USER
-============================= */
+// UPDATE user
 exports.updateUser = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    if (User) {
-      const updatedUser = await User.findByIdAndUpdate(id, req.body, {
-        new: true,
-      });
-      if (!updatedUser)
-        return res.status(404).json({ message: "User không tồn tại!" });
-      return res.json(updatedUser);
+    console.log("UPDATE USER - Request body:", req.body);
+    console.log("UPDATE USER - Params ID:", req.params.id);
+
+    const { id } = req.params;
+    const { name, email } = req.body;
+
+    // Kiểm tra body
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ message: "Request body is empty" });
     }
 
-    // Nếu chưa có DB thì sửa trong mảng tạm
-    const index = users.findIndex((u) => u.id == id);
-    if (index === -1)
-      return res.status(404).json({ message: "User không tồn tại!" });
+    if (!name && !email) {
+      return res
+        .status(400)
+        .json({ message: "Provide name or email to update" });
+    }
 
-    users[index] = { ...users[index], ...req.body };
-    res.json(users[index]);
+    // Kiểm tra ID hợp lệ
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+
+    const updatedUser = await User.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(updatedUser);
   } catch (err) {
+    console.error("Update error:", err);
+
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
     res.status(500).json({ message: err.message });
   }
 };
 
-/* =============================
-   DELETE - XÓA USER
-============================= */
+// DELETE user
 exports.deleteUser = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    if (User) {
-      const deletedUser = await User.findByIdAndDelete(id);
-      if (!deletedUser)
-        return res.status(404).json({ message: "User không tồn tại!" });
-      return res.json({ message: "Đã xóa user khỏi MongoDB" });
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
     }
 
-    // Nếu chưa có DB, xóa trong mảng tạm
-    users = users.filter((u) => u.id != id);
-    res.json({ message: "User đã bị xóa khỏi mảng tạm" });
+    const deletedUser = await User.findByIdAndDelete(id);
+
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ message: "User deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
