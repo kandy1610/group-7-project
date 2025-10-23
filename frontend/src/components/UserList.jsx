@@ -1,9 +1,12 @@
-// src/components/UserList.jsx
 import React, { useState } from 'react';
 
 const UserList = ({ users, onDeleteUser, onUpdateUser }) => {
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', email: '' });
+  const [loadingStates, setLoadingStates] = useState({
+    update: false,
+    delete: null // id của user đang được xóa
+  });
 
   // Bắt đầu chỉnh sửa user
   const handleEdit = (user) => {
@@ -20,23 +23,39 @@ const UserList = ({ users, onDeleteUser, onUpdateUser }) => {
     setEditForm({ name: '', email: '' });
   };
 
+  // Validation cho form edit
+  const validateEditForm = () => {
+    if (!editForm.name.trim()) return 'Tên không được để trống';
+    if (!editForm.email.trim()) return 'Email không được để trống';
+    if (!/\S+@\S+\.\S+/.test(editForm.email)) return 'Email không hợp lệ';
+    return null;
+  };
+
   // Xác nhận cập nhật user
   const handleUpdate = async (e) => {
     e.preventDefault();
-    if (!editForm.name.trim() || !editForm.email.trim()) {
-      alert('Vui lòng điền đầy đủ thông tin!');
+    
+    const validationError = validateEditForm();
+    if (validationError) {
+      alert(validationError);
       return;
     }
 
+    setLoadingStates(prev => ({ ...prev, update: true }));
+
     await onUpdateUser(editingUser._id || editingUser.id, editForm);
+    
     setEditingUser(null);
     setEditForm({ name: '', email: '' });
+    setLoadingStates(prev => ({ ...prev, update: false }));
   };
 
   // Xóa user
-  const handleDelete = (userId) => {
+  const handleDelete = async (userId) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa user này?')) {
-      onDeleteUser(userId);
+      setLoadingStates(prev => ({ ...prev, delete: userId }));
+      await onDeleteUser(userId);
+      setLoadingStates(prev => ({ ...prev, delete: null }));
     }
   };
 
@@ -44,14 +63,14 @@ const UserList = ({ users, onDeleteUser, onUpdateUser }) => {
     return (
       <div className="user-list">
         <h2>Danh sách Users</h2>
-        <p>Không có user nào.</p>
+        <p>📭 Không có user nào.</p>
       </div>
     );
   }
 
   return (
     <div className="user-list">
-      <h2>Danh sách Users ({users.length})</h2>
+      <h2>📋 Danh sách Users ({users.length})</h2>
       
       {/* Form chỉnh sửa user */}
       {editingUser && (
@@ -79,8 +98,19 @@ const UserList = ({ users, onDeleteUser, onUpdateUser }) => {
               />
             </div>
             <div className="form-actions">
-              <button type="submit" className="btn-update">✅ Cập nhật</button>
-              <button type="button" className="btn-cancel" onClick={handleCancelEdit}>
+              <button 
+                type="submit" 
+                className="btn-update"
+                disabled={loadingStates.update}
+              >
+                {loadingStates.update ? '🔄 Đang cập nhật...' : '✅ Cập nhật'}
+              </button>
+              <button 
+                type="button" 
+                className="btn-cancel" 
+                onClick={handleCancelEdit}
+                disabled={loadingStates.update}
+              >
                 ❌ Hủy
               </button>
             </div>
@@ -103,14 +133,16 @@ const UserList = ({ users, onDeleteUser, onUpdateUser }) => {
               <button 
                 className="btn-edit"
                 onClick={() => handleEdit(user)}
+                disabled={loadingStates.delete === (user._id || user.id)}
               >
                 ✏️ Sửa
               </button>
               <button 
                 className="btn-delete"
                 onClick={() => handleDelete(user._id || user.id)}
+                disabled={loadingStates.delete === (user._id || user.id)}
               >
-                🗑️ Xóa
+                {loadingStates.delete === (user._id || user.id) ? '🔄 Đang xóa...' : '🗑️ Xóa'}
               </button>
             </div>
           </div>
