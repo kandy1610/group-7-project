@@ -2,46 +2,72 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import UserList from "./components/UserList";
 import AddUser from "./components/AddUser";
+import Login from "./components/Login";
+import SignUp from "./components/SignUp";
 import "./App.css";
 
 function App() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showAuth, setShowAuth] = useState(true);
+  const [isLogin, setIsLogin] = useState(true);
 
-  // Hàm fetch users từ API
+  // Hàm fetch users từ API - CÓ token
   const fetchUsers = async () => {
     console.log("🔄 Fetching users from backend...");
     try {
       setLoading(true);
       setError("");
 
-      const response = await axios.get("http://localhost:3000/users");
+      const token = localStorage.getItem("token");
+      const config = token
+        ? {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        : {};
+
+      const response = await axios.get("http://localhost:3000/users", config);
       console.log("✅ Users fetched successfully:", response.data);
       setUsers(response.data);
     } catch (error) {
       console.error("❌ Error fetching users:", error);
-      console.error("Error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-
       setError(
-        error.response?.status === 404
-          ? "Backend server không khả dụng. Hãy chắc chắn backend đang chạy trên port 3000!"
-          : "Không thể tải danh sách users. Vui lòng kiểm tra backend server."
+        error.response?.status === 401
+          ? "Vui lòng đăng nhập để xem danh sách users"
+          : "Không thể tải danh sách users"
       );
     } finally {
       setLoading(false);
     }
   };
 
-  // Hàm xóa user
+  // Hàm xử lý đăng nhập thành công
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
+    setShowAuth(false);
+    fetchUsers();
+  };
+
+  // Hàm xử lý đăng xuất
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setCurrentUser(null);
+    setShowAuth(true);
+    setIsLogin(true);
+    setUsers([]);
+  };
+
+  // Hàm xóa user - CÓ token
   const handleDeleteUser = async (userId) => {
     console.log("🗑️ Deleting user:", userId);
     try {
-      await axios.delete(`http://localhost:3000/users/${userId}`);
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:3000/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       console.log("✅ User deleted successfully");
       fetchUsers();
       alert("Xóa user thành công!");
@@ -53,11 +79,14 @@ function App() {
     }
   };
 
-  // Hàm cập nhật user
+  // Hàm cập nhật user - CÓ token
   const handleUpdateUser = async (userId, updatedData) => {
     console.log("✏️ Updating user:", userId, updatedData);
     try {
-      await axios.put(`http://localhost:3000/users/${userId}`, updatedData);
+      const token = localStorage.getItem("token");
+      await axios.put(`http://localhost:3000/users/${userId}`, updatedData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       console.log("✅ User updated successfully");
       fetchUsers();
       alert("Cập nhật user thành công!");
@@ -70,17 +99,36 @@ function App() {
     }
   };
 
-  // Fetch users khi component mount
+  // Kiểm tra token khi component mount
   useEffect(() => {
-    console.log("🏁 App component mounted, fetching users...");
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+
+    if (token && userData) {
+      setCurrentUser(JSON.parse(userData));
+      setShowAuth(false);
+    }
     fetchUsers();
   }, []);
+
+  const switchToSignUp = () => setIsLogin(false);
+  const switchToLogin = () => setIsLogin(true);
 
   return (
     <div className="App">
       <header className="App-header">
         <h1>🚀 User Management System</h1>
         <p>Quản lý người dùng với React + Node.js</p>
+
+        {currentUser && (
+          <div className="user-info">
+            <span>👤 Xin chào, {currentUser.name}</span>
+            <button onClick={handleLogout} className="logout-btn">
+              🚪 Đăng xuất
+            </button>
+          </div>
+        )}
+
         <div style={{ fontSize: "14px", marginTop: "10px" }}>
           <strong>Backend Status:</strong>
           <span
@@ -92,29 +140,43 @@ function App() {
       </header>
 
       <main className="main-content">
-        {/* Component thêm user */}
-        <AddUser onUserAdded={fetchUsers} />
-
-        {/* Hiển thị loading hoặc error */}
-        {loading && <div className="loading">🔄 Đang tải dữ liệu...</div>}
-        {error && (
-          <div className="error-message">
-            <strong>❌ Lỗi:</strong> {error}
-            <div style={{ marginTop: "10px", fontSize: "14px" }}>
-              <button onClick={fetchUsers} className="btn-retry">
-                🔄 Thử lại
-              </button>
-            </div>
+        {showAuth ? (
+          // Hiển thị form đăng nhập/đăng ký
+          <div className="auth-container">
+            {isLogin ? (
+              <Login
+                onLoginSuccess={handleLoginSuccess}
+                onSwitchToSignUp={switchToSignUp}
+              />
+            ) : (
+              <SignUp onSwitchToLogin={switchToLogin} />
+            )}
           </div>
-        )}
+        ) : (
+          // Hiển thị nội dung chính khi đã đăng nhập
+          <>
+            <AddUser onUserAdded={fetchUsers} />
 
-        {/* Component hiển thị danh sách users */}
-        {!loading && !error && (
-          <UserList
-            users={users}
-            onDeleteUser={handleDeleteUser}
-            onUpdateUser={handleUpdateUser}
-          />
+            {loading && <div className="loading">🔄 Đang tải dữ liệu...</div>}
+            {error && (
+              <div className="error-message">
+                <strong>❌ Lỗi:</strong> {error}
+                <div style={{ marginTop: "10px", fontSize: "14px" }}>
+                  <button onClick={fetchUsers} className="btn-retry">
+                    🔄 Thử lại
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!loading && !error && (
+              <UserList
+                users={users}
+                onDeleteUser={handleDeleteUser}
+                onUpdateUser={handleUpdateUser}
+              />
+            )}
+          </>
         )}
       </main>
     </div>
