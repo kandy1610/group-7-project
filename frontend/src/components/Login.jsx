@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import './Auth.css';
 
-const Login = ({ onLoginSuccess, onSwitchToSignUp }) => {
+const Login = ({ onLoginSuccess, onSwitchToSignUp, onSwitchToForgot  }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -117,10 +117,15 @@ const Login = ({ onLoginSuccess, onSwitchToSignUp }) => {
         </button>
       </form>
 
-      <div className="auth-switch">
+       <div className="auth-switch">
         <p>Chưa có tài khoản? 
           <button type="button" className="link-btn" onClick={onSwitchToSignUp}>
             Đăng ký ngay
+          </button>
+        </p>
+        <p>
+          <button type="button" className="link-btn" onClick={onSwitchToForgot}>
+            🔐 Quên mật khẩu?
           </button>
         </p>
       </div>
