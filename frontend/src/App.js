@@ -1,9 +1,13 @@
+// src/App.js (ĐÃ SỬA LỖI)
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import UserList from "./components/UserList";
 import AddUser from "./components/AddUser";
 import Login from "./components/Login";
 import SignUp from "./components/SignUp";
+import Profile from "./components/Profile";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
 import "./App.css";
 
 function App() {
@@ -12,9 +16,10 @@ function App() {
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [showAuth, setShowAuth] = useState(true);
-  const [isLogin, setIsLogin] = useState(true);
+  const [activeTab, setActiveTab] = useState("users");
+  const [authMode, setAuthMode] = useState("login"); // 'login', 'signup', 'forgot', 'reset'
 
-  // Hàm fetch users từ API - CÓ token
+  // Hàm fetch users từ API
   const fetchUsers = async () => {
     console.log("🔄 Fetching users from backend...");
     try {
@@ -56,8 +61,9 @@ function App() {
     localStorage.removeItem("user");
     setCurrentUser(null);
     setShowAuth(true);
-    setIsLogin(true);
+    setAuthMode("login");
     setUsers([]);
+    setActiveTab("users");
   };
 
   // Hàm xóa user - CÓ token
@@ -99,6 +105,52 @@ function App() {
     }
   };
 
+  // Hàm cập nhật profile thành công
+  const handleUpdateProfile = (updatedUser) => {
+    setCurrentUser(updatedUser);
+    // Có thể fetch lại users nếu cần
+    fetchUsers();
+  };
+
+  // Các hàm chuyển đổi auth mode
+  const switchToSignUp = () => setAuthMode("signup");
+  const switchToLogin = () => setAuthMode("login");
+  const switchToForgot = () => setAuthMode("forgot");
+  const switchToReset = () => setAuthMode("reset");
+
+  // Render auth form dựa trên authMode
+  const renderAuthForm = () => {
+    switch (authMode) {
+      case "login":
+        return (
+          <Login
+            onLoginSuccess={handleLoginSuccess}
+            onSwitchToSignUp={switchToSignUp}
+            onSwitchToForgot={switchToForgot}
+          />
+        );
+      case "signup":
+        return <SignUp onSwitchToLogin={switchToLogin} />;
+      case "forgot":
+        return (
+          <ForgotPassword
+            onSwitchToLogin={switchToLogin}
+            onSwitchToReset={switchToReset}
+          />
+        );
+      case "reset":
+        return <ResetPassword onSwitchToLogin={switchToLogin} />;
+      default:
+        return (
+          <Login
+            onLoginSuccess={handleLoginSuccess}
+            onSwitchToSignUp={switchToSignUp}
+            onSwitchToForgot={switchToForgot}
+          />
+        );
+    }
+  };
+
   // Kiểm tra token khi component mount
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -111,9 +163,6 @@ function App() {
     fetchUsers();
   }, []);
 
-  const switchToSignUp = () => setIsLogin(false);
-  const switchToLogin = () => setIsLogin(true);
-
   return (
     <div className="App">
       <header className="App-header">
@@ -122,10 +171,35 @@ function App() {
 
         {currentUser && (
           <div className="user-info">
-            <span>👤 Xin chào, {currentUser.name}</span>
-            <button onClick={handleLogout} className="logout-btn">
-              🚪 Đăng xuất
-            </button>
+            <div className="user-avatar">
+              {currentUser.avatar ? (
+                <img
+                  src={currentUser.avatar}
+                  alt="Avatar"
+                  className="avatar-small"
+                />
+              ) : (
+                <span>👤</span>
+              )}
+              <span>Xin chào, {currentUser.name}</span>
+            </div>
+            <div className="header-buttons">
+              <button
+                onClick={() => setActiveTab("profile")}
+                className={`tab-btn ${activeTab === "profile" ? "active" : ""}`}
+              >
+                👤 Profile
+              </button>
+              <button
+                onClick={() => setActiveTab("users")}
+                className={`tab-btn ${activeTab === "users" ? "active" : ""}`}
+              >
+                📋 Users
+              </button>
+              <button onClick={handleLogout} className="logout-btn">
+                🚪 Đăng xuất
+              </button>
+            </div>
           </div>
         )}
 
@@ -141,39 +215,41 @@ function App() {
 
       <main className="main-content">
         {showAuth ? (
-          // Hiển thị form đăng nhập/đăng ký
-          <div className="auth-container">
-            {isLogin ? (
-              <Login
-                onLoginSuccess={handleLoginSuccess}
-                onSwitchToSignUp={switchToSignUp}
-              />
-            ) : (
-              <SignUp onSwitchToLogin={switchToLogin} />
-            )}
-          </div>
+          // Hiển thị form đăng nhập/đăng ký/quên mật khẩu
+          <div className="auth-container">{renderAuthForm()}</div>
         ) : (
           // Hiển thị nội dung chính khi đã đăng nhập
           <>
-            <AddUser onUserAdded={fetchUsers} />
+            {activeTab === "users" ? (
+              <>
+                <AddUser onUserAdded={fetchUsers} />
 
-            {loading && <div className="loading">🔄 Đang tải dữ liệu...</div>}
-            {error && (
-              <div className="error-message">
-                <strong>❌ Lỗi:</strong> {error}
-                <div style={{ marginTop: "10px", fontSize: "14px" }}>
-                  <button onClick={fetchUsers} className="btn-retry">
-                    🔄 Thử lại
-                  </button>
-                </div>
-              </div>
-            )}
+                {loading && (
+                  <div className="loading">🔄 Đang tải dữ liệu...</div>
+                )}
+                {error && (
+                  <div className="error-message">
+                    <strong>❌ Lỗi:</strong> {error}
+                    <div style={{ marginTop: "10px", fontSize: "14px" }}>
+                      <button onClick={fetchUsers} className="btn-retry">
+                        🔄 Thử lại
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-            {!loading && !error && (
-              <UserList
-                users={users}
-                onDeleteUser={handleDeleteUser}
-                onUpdateUser={handleUpdateUser}
+                {!loading && !error && (
+                  <UserList
+                    users={users}
+                    onDeleteUser={handleDeleteUser}
+                    onUpdateUser={handleUpdateUser}
+                  />
+                )}
+              </>
+            ) : (
+              <Profile
+                currentUser={currentUser}
+                onUpdateSuccess={handleUpdateProfile}
               />
             )}
           </>

@@ -131,3 +131,14 @@
   color: #28a745;
   margin-bottom: 1rem;
 }
+/* Auth.css - THÊM STYLE CHO FORGOT PASSWORD */
+.auth-description {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #6c757d;
+}
+
+.auth-description small {
+  font-size: 12px;
+  color: #868e96;
+}
