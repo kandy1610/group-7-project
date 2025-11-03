@@ -1,9 +1,13 @@
 // src/components/ResetPassword.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useParams, useNavigate } from 'react-router-dom'; 
 import './Auth.css';
 
-const ResetPassword = ({ onSwitchToLogin }) => {
+const ResetPassword = ({ autoFilledToken, onSwitchToLogin }) => {
+  const { token: urlToken } = useParams();
+  const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
     token: '',
     newPassword: '',
@@ -12,8 +16,33 @@ const ResetPassword = ({ onSwitchToLogin }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  //  useEffect(() => {
+  //   // Cách 1: Lấy token từ URL parameters (nếu dùng React Router)
+  //   // const { token } = useParams();
+  //   // if (token) {
+  //   //   setFormData(prev => ({ ...prev, token }));
+  //   // }
+    
+  //   // Cách 2: Lấy token từ URL hiện tại (không cần React Router)
+  //   const currentUrl = window.location.href;
+  //   const urlParts = currentUrl.split('/reset-password/');
+    
+  //   if (urlParts.length > 1) {
+  //     const tokenFromUrl = urlParts[1];
+  //     setFormData(prev => ({ ...prev, token: tokenFromUrl }));
+  //     console.log("✅ Auto-filled token from URL:", tokenFromUrl);
+  //   }
+  // }, []);
 
-  const handleChange = (e) => {
+   useEffect(() => {
+    // Ưu tiên token từ URL, sau đó từ prop
+    const token = urlToken || autoFilledToken;
+    if (token) {
+      setFormData(prev => ({ ...prev, token }));
+      console.log("✅ Auto-filled token:", token);
+    }
+  }, [urlToken, autoFilledToken]);
+   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -23,6 +52,7 @@ const ResetPassword = ({ onSwitchToLogin }) => {
     if (error) setError('');
   };
 
+  
   const validateForm = () => {
     if (!formData.token.trim()) {
       setError('Token là bắt buộc');
@@ -59,10 +89,10 @@ const ResetPassword = ({ onSwitchToLogin }) => {
     setMessage('');
 
     try {
-      const response = await axios.post('http://localhost:3000/reset-password', {
-        token: formData.token,
-        newPassword: formData.newPassword
-      });
+      const response = await axios.put(
+        `http://localhost:3000/api/auth/reset-password/${formData.token}`,
+        { password: formData.newPassword }
+      );
       
       setMessage(response.data.message);
       
@@ -72,6 +102,11 @@ const ResetPassword = ({ onSwitchToLogin }) => {
         newPassword: '',
         confirmPassword: ''
       });
+      
+      // Tự động chuyển hướng sau 3 giây
+      setTimeout(() => {
+        navigate('/'); // Chuyển về trang chủ
+      }, 3000);
       
     } catch (error) {
       console.error('Reset password error:', error);

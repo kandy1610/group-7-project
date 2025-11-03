@@ -48,36 +48,45 @@ const AddUser = ({ onUserAdded }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+  e.preventDefault();
+  
+  if (!validateForm()) {
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
+  
+  try {
+    const token = localStorage.getItem("token");
+    const config = token ? {
+      headers: { Authorization: `Bearer ${token}` }
+    } : {};
+
+    // SỬA ENDPOINT
+    const userData = {
+      ...formData,
+      password: "123456" // Password mặc định
+    };
+
+    const response = await axios.post('http://localhost:3000/api/', userData, config);
+    console.log('User added:', response.data);
     
-    try {
-      const response = await axios.post('http://localhost:3000/users', formData);
-      console.log('User added:', response.data);
-      
-      // Reset form
-      setFormData({ name: '', email: '' });
-      setErrors({});
-      
-      // Gọi callback để refresh danh sách users
-      if (onUserAdded) {
-        onUserAdded();
-      }
-      
-      alert('Thêm user thành công!');
-    } catch (error) {
-      console.error('Error adding user:', error);
-      const errorMessage = error.response?.data?.message || error.message;
-      setErrors({ submit: `Lỗi khi thêm user: ${errorMessage}` });
-    } finally {
-      setLoading(false);
+    setFormData({ name: '', email: '' });
+    setErrors({});
+    
+    if (onUserAdded) {
+      onUserAdded();
     }
-  };
+    
+    alert('Thêm user thành công!');
+  } catch (error) {
+    console.error('Error adding user:', error);
+    const errorMessage = error.response?.data?.message || error.message;
+    setErrors({ submit: `Lỗi khi thêm user: ${errorMessage}` });
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="add-user">

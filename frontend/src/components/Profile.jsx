@@ -84,91 +84,201 @@ const Profile = ({ currentUser, onUpdateSuccess }) => {
 
   // Upload avatar từ file
   const handleFileUpload = async () => {
-    if (!selectedFile) {
-      setErrors({ submit: 'Vui lòng chọn file ảnh' });
-      return;
-    }
+  if (!selectedFile) {
+    setErrors({ submit: 'Vui lòng chọn file ảnh' });
+    return;
+  }
 
-    setLoading(true);
+  // 🆕 KIỂM TRA KỸ HƠN VỀ FILE TYPE
+  if (!selectedFile.type.startsWith('image/')) {
+    setErrors({ submit: 'File phải là ảnh (JPEG, PNG, GIF, WebP)' });
+    return;
+  }
+
+  // 🆕 KIỂM TRA KÍCH THƯỚC CHI TIẾT
+  const maxSize = 2 * 1024 * 1024; // 2MB
+  if (selectedFile.size > maxSize) {
+    setErrors({ submit: `Kích thước ảnh không được vượt quá 2MB. File của bạn: ${(selectedFile.size / 1024 / 1024).toFixed(2)}MB` });
+    return;
+  }
+
+  // 🆕 KIỂM TRA ĐUÔI FILE
+  const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!validTypes.includes(selectedFile.type)) {
+    setErrors({ submit: 'Chỉ chấp nhận file ảnh: JPEG, PNG, GIF, WebP' });
+    return;
+  }
+
+  setLoading(true);
+  setErrors({});
+  setMessage('');
+  
+  try {
+    const uploadFormData = new FormData();
+    uploadFormData.append('avatar', selectedFile);
+
+    const token = localStorage.getItem('token');
+    const config = {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 15000 // 🆕 THÊM TIMEOUT 15s
+    };
+
+    const response = await axios.post(
+      'http://localhost:3000/api/auth/upload-avatar', 
+      uploadFormData, 
+      config
+    );
     
-    try {
-      const formData = new FormData();
-      formData.append('avatar', selectedFile);
-
-      const token = localStorage.getItem('token');
-      const config = {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      };
-
-      const response = await axios.post('http://localhost:3000/upload-avatar-file', formData, config);
-      
-      const updatedUser = response.data.user;
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      setMessage('Upload avatar thành công!');
-      setFormData(prev => ({ ...prev, avatar: updatedUser.avatar }));
-      setImagePreview(updatedUser.avatar);
-      
-      if (onUpdateSuccess) {
-        onUpdateSuccess(updatedUser);
-      }
-      
-    } catch (error) {
-      console.error('Upload avatar error:', error);
-      setErrors({ submit: error.response?.data?.message || 'Upload avatar thất bại' });
-    } finally {
-      setLoading(false);
+    // 🆕 KIỂM TRA RESPONSE KỸ HƠN
+    if (!response.data || !response.data.user) {
+      throw new Error('Server trả về dữ liệu không hợp lệ');
     }
-  };
+    
+    const updatedUser = response.data.user;
+    
+    // 🆕 KIỂM TRA AVATAR URL TRONG RESPONSE
+    if (!updatedUser.avatar) {
+      console.warn('⚠️ Server response missing avatar URL:', response.data);
+    }
+    
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    
+    setMessage('✅ Upload avatar thành công!');
+    
+    // 🆕 CẬP NHẬT FORM DATA VÀ PREVIEW
+    setFormData(prev => ({ ...prev, avatar: updatedUser.avatar || imagePreview }));
+    
+    // 🆕 NẾU SERVER KHÔNG TRẢ VỀ AVATAR, GIỮ NGUYÊN PREVIEW HIỆN TẠI
+    if (updatedUser.avatar) {
+      setImagePreview(updatedUser.avatar);
+    }
+    
+    // 🆕 RESET SELECTED FILE
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    
+    if (onUpdateSuccess) {
+      onUpdateSuccess(updatedUser);
+    }
+    
+  } catch (error) {
+    console.error('Upload avatar error:', error);
+    
+    // 🆕 XỬ LÝ LỖI CHI TIẾT
+    let errorMessage = 'Upload avatar thất bại';
+    if (error.code === 'ECONNABORTED') {
+      errorMessage = 'Upload timeout - có thể file quá lớn hoặc kết nối chậm';
+    } else if (error.response?.status === 413) {
+      errorMessage = 'File quá lớn. Vui lòng chọn file nhỏ hơn 2MB';
+    } else if (error.response?.status === 415) {
+      errorMessage = 'Định dạng file không được hỗ trợ';
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    setErrors({ submit: errorMessage });
+    
+    // 🆕 RESET FILE INPUT NẾU LỖI
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Upload avatar từ URL
-  const handleUrlUpload = async () => {
-    if (!formData.avatar.trim()) {
-      setErrors({ submit: 'Vui lòng nhập URL avatar' });
-      return;
-    }
+ const handleUrlUpload = async () => {
+  if (!formData.avatar.trim()) {
+    setErrors({ submit: 'Vui lòng nhập URL avatar' });
+    return;
+  }
 
-    // Validate URL
-    try {
-      new URL(formData.avatar);
-    } catch (error) {
-      setErrors({ submit: 'URL không hợp lệ' });
-      return;
-    }
+  // 🆕 THÊM VALIDATION URL
+  try {
+    new URL(formData.avatar);
+  } catch (error) {
+    setErrors({ submit: 'URL không hợp lệ. Vui lòng nhập URL đầy đủ (VD: https://example.com/avatar.jpg)' });
+    return;
+  }
 
-    setLoading(true);
+  // 🆕 THÊM VALIDATION ĐUÔI FILE TỪ URL
+  const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+  const hasValidExtension = validImageExtensions.some(ext => 
+    formData.avatar.toLowerCase().includes(ext)
+  );
+  
+  if (!hasValidExtension) {
+    setErrors({ submit: 'URL phải trỏ đến file ảnh (JPEG, PNG, GIF, WebP)' });
+    return;
+  }
+
+  setLoading(true);
+  setErrors({});
+  setMessage('');
+  
+  try {
+    const token = localStorage.getItem('token');
+    const config = {
+      headers: { Authorization: `Bearer ${token}` }
+    };
+
+    // 🆕 THÊM TIMEOUT CHO REQUEST
+    const response = await axios.put(
+      'http://localhost:3000/api/auth/upload-avatar-url', 
+      { avatarUrl: formData.avatar }, 
+      { ...config, timeout: 10000 } // 10 seconds timeout
+    );
     
-    try {
-      const token = localStorage.getItem('token');
-      const config = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
-
-      const response = await axios.put('http://localhost:3000/upload-avatar', 
-        { avatarUrl: formData.avatar }, 
-        config
-      );
-      
-      const updatedUser = response.data.user;
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      setMessage('Cập nhật avatar thành công!');
-      setImagePreview(formData.avatar);
-      
-      if (onUpdateSuccess) {
-        onUpdateSuccess(updatedUser);
-      }
-      
-    } catch (error) {
-      console.error('Upload avatar error:', error);
-      setErrors({ submit: error.response?.data?.message || 'Upload avatar thất bại' });
-    } finally {
-      setLoading(false);
+    const updatedUser = response.data.user;
+    
+    // 🆕 KIỂM TRA RESPONSE
+    if (!updatedUser || !updatedUser.avatar) {
+      throw new Error('Server trả về dữ liệu không hợp lệ');
     }
-  };
+    
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    
+    setMessage('✅ Cập nhật avatar thành công!');
+    setImagePreview(updatedUser.avatar);
+    
+    // 🆕 CẬP NHẬT FORM DATA
+    setFormData(prev => ({ ...prev, avatar: updatedUser.avatar }));
+    
+    if (onUpdateSuccess) {
+      onUpdateSuccess(updatedUser);
+    }
+    
+  } catch (error) {
+    console.error('Upload avatar error:', error);
+    
+    // 🆕 XỬ LÝ LỖI CHI TIẾT
+    let errorMessage = 'Upload avatar thất bại';
+    if (error.code === 'ECONNABORTED') {
+      errorMessage = 'Request timeout - URL có thể không tồn tại hoặc server quá chậm';
+    } else if (error.response?.status === 404) {
+      errorMessage = 'Không tìm thấy ảnh từ URL này';
+    } else if (error.response?.status === 400) {
+      errorMessage = 'URL không hợp lệ hoặc không phải là ảnh';
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    setErrors({ submit: errorMessage });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const validateForm = () => {
     const newErrors = {};
@@ -221,9 +331,9 @@ const Profile = ({ currentUser, onUpdateSuccess }) => {
         submitData.password = formData.password;
       }
 
-      const response = await axios.put('http://localhost:3000/profile', submitData, config);
+      const response = await axios.put('http://localhost:3000/api/auth/profile', submitData, config);
       
-      const updatedUser = response.data.user;
+      const updatedUser = response.data; 
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
       setMessage('Cập nhật thông tin thành công!');
