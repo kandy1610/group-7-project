@@ -1,5 +1,11 @@
-// src/App.js (ĐÃ SỬA LỖI)
+// src/App.js (ĐÃ SỬA LỖI HOOK)
 import React, { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useParams,
+} from "react-router-dom";
 import axios from "axios";
 import UserList from "./components/UserList";
 import AddUser from "./components/AddUser";
@@ -10,14 +16,27 @@ import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
 import "./App.css";
 
-function App() {
+// Component Reset Password Page
+const ResetPasswordPage = () => {
+  const { token } = useParams();
+  return (
+    <div className="reset-password-page">
+      <div className="auth-container">
+        <ResetPassword autoFilledToken={token} />
+      </div>
+    </div>
+  );
+};
+
+// Component App chính
+const AppContent = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [showAuth, setShowAuth] = useState(true);
   const [activeTab, setActiveTab] = useState("users");
-  const [authMode, setAuthMode] = useState("login"); // 'login', 'signup', 'forgot', 'reset'
+  const [authMode, setAuthMode] = useState("login");
 
   // Hàm fetch users từ API
   const fetchUsers = async () => {
@@ -27,22 +46,40 @@ function App() {
       setError("");
 
       const token = localStorage.getItem("token");
-      const config = token
-        ? {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        : {};
+      console.log("🔑 Token:", token);
 
-      const response = await axios.get("http://localhost:3000/users", config);
+      if (!token) {
+        setError("Vui lòng đăng nhập để xem danh sách users");
+        setLoading(false);
+        return;
+      }
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      };
+
+      const response = await axios.get("http://localhost:3000/api/", config);
       console.log("✅ Users fetched successfully:", response.data);
       setUsers(response.data);
     } catch (error) {
       console.error("❌ Error fetching users:", error);
-      setError(
-        error.response?.status === 401
-          ? "Vui lòng đăng nhập để xem danh sách users"
-          : "Không thể tải danh sách users"
-      );
+
+      if (error.response?.status === 401) {
+        setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setCurrentUser(null);
+        setShowAuth(true);
+      } else if (error.response?.status === 403) {
+        setError("Bạn không có quyền truy cập tính năng này.");
+      } else {
+        setError(
+          "Không thể tải danh sách users: " + (error.message || "Lỗi kết nối")
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -66,12 +103,12 @@ function App() {
     setActiveTab("users");
   };
 
-  // Hàm xóa user - CÓ token
+  // Hàm xóa user
   const handleDeleteUser = async (userId) => {
     console.log("🗑️ Deleting user:", userId);
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3000/users/${userId}`, {
+      await axios.delete(`http://localhost:3000/api/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log("✅ User deleted successfully");
@@ -85,12 +122,12 @@ function App() {
     }
   };
 
-  // Hàm cập nhật user - CÓ token
+  // Hàm cập nhật user
   const handleUpdateUser = async (userId, updatedData) => {
     console.log("✏️ Updating user:", userId, updatedData);
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:3000/users/${userId}`, updatedData, {
+      await axios.put(`http://localhost:3000/api/${userId}`, updatedData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log("✅ User updated successfully");
@@ -105,10 +142,9 @@ function App() {
     }
   };
 
-  // Hàm cập nhật profile thành công
+  // Hàm cập nhật profile
   const handleUpdateProfile = (updatedUser) => {
     setCurrentUser(updatedUser);
-    // Có thể fetch lại users nếu cần
     fetchUsers();
   };
 
@@ -116,9 +152,8 @@ function App() {
   const switchToSignUp = () => setAuthMode("signup");
   const switchToLogin = () => setAuthMode("login");
   const switchToForgot = () => setAuthMode("forgot");
-  const switchToReset = () => setAuthMode("reset");
 
-  // Render auth form dựa trên authMode
+  // Render auth form
   const renderAuthForm = () => {
     switch (authMode) {
       case "login":
@@ -132,14 +167,7 @@ function App() {
       case "signup":
         return <SignUp onSwitchToLogin={switchToLogin} />;
       case "forgot":
-        return (
-          <ForgotPassword
-            onSwitchToLogin={switchToLogin}
-            onSwitchToReset={switchToReset}
-          />
-        );
-      case "reset":
-        return <ResetPassword onSwitchToLogin={switchToLogin} />;
+        return <ForgotPassword onSwitchToLogin={switchToLogin} />;
       default:
         return (
           <Login
@@ -151,15 +179,57 @@ function App() {
     }
   };
 
-  // Kiểm tra token khi component mount
+  const fetchCurrentUser = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    try {
+      const response = await axios.get(
+        "http://localhost:3000/api/auth/profile",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+      return null;
+    }
+  };
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
 
-    if (token && userData) {
-      setCurrentUser(JSON.parse(userData));
-      setShowAuth(false);
+    console.log("🔑 Token from storage:", token);
+    console.log("👤 User data from storage:", userData);
+
+    if (token && userData && userData !== "undefined" && userData !== "null") {
+      const loadUser = async () => {
+        try {
+          // 🆕 FETCH USER DATA MỚI NHẤT TỪ SERVER
+          const freshUser = await fetchCurrentUser();
+          const parsedUser = freshUser || JSON.parse(userData);
+
+          setCurrentUser(parsedUser);
+          setShowAuth(false);
+          console.log("✅ User authenticated:", parsedUser);
+
+          // 🆕 CẬP NHẬT LOCALSTORAGE VỚI DATA MỚI
+          if (freshUser) {
+            localStorage.setItem("user", JSON.stringify(freshUser));
+          }
+        } catch (error) {
+          console.error("❌ Error loading user data:", error);
+          localStorage.removeItem("user");
+          localStorage.removeItem("token");
+        }
+      };
+
+      loadUser();
+    } else {
+      console.log("ℹ️ No valid token or user data found");
     }
+
     fetchUsers();
   }, []);
 
@@ -215,10 +285,8 @@ function App() {
 
       <main className="main-content">
         {showAuth ? (
-          // Hiển thị form đăng nhập/đăng ký/quên mật khẩu
           <div className="auth-container">{renderAuthForm()}</div>
         ) : (
-          // Hiển thị nội dung chính khi đã đăng nhập
           <>
             {activeTab === "users" ? (
               <>
@@ -257,6 +325,18 @@ function App() {
       </main>
     </div>
   );
-}
+};
+
+// Component chính với Router
+const App = () => {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        <Route path="*" element={<AppContent />} />
+      </Routes>
+    </Router>
+  );
+};
 
 export default App;

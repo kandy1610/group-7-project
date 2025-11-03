@@ -12,7 +12,7 @@ const SignUp = ({ onSwitchToLogin }) => {
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [success, setSuccess] = useState(false);
+  // ĐÃ XÓA: success và setSuccess vì không sử dụng
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -60,59 +60,39 @@ const SignUp = ({ onSwitchToLogin }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-// SỬA phần handleSubmit trong SignUp.jsx:
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!validateForm()) {
-    return;
-  }
-
-  setLoading(true);
-  
-  try {
-    const { confirmPassword, ...submitData } = formData;
-    const response = await axios.post('http://localhost:3000/signup', submitData);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     
-    // SỬA: Không setSuccess(true) vì component sẽ chuyển sang login
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-      confirmPassword: ''
-    });
-    setErrors({});
-    
-    alert('Đăng ký thành công! Vui lòng đăng nhập.');
-    onSwitchToLogin(); // Chuyển sang form login
-    
-  } catch (error) {
-    console.error('Sign up error:', error);
-    const errorMessage = error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
-    setErrors({ submit: errorMessage });
-  } finally {
-    setLoading(false);
-  }
-};
+    if (!validateForm()) {
+      return;
+    }
 
-// XÓA phần success condition vì không cần thiết
-// if (success) {
-//   return (...)
-// }
-
-  // if (success) {
-  //   return (
-  //     <div className="auth-form">
-  //       <div className="success-message">
-  //         <h2>✅ Đăng ký thành công!</h2>
-  //         <p>Tài khoản của bạn đã được tạo. Vui lòng đăng nhập.</p>
-  //         <button type="button" className="auth-btn" onClick={onSwitchToLogin}>
-  //           Đăng nhập ngay
-  //         </button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+    setLoading(true);
+    
+    try {
+      const { confirmPassword, ...submitData } = formData;
+      // SỬA: Không cần gán vào biến response nếu không sử dụng
+      await axios.post('http://localhost:3000/api/auth/signup', submitData);
+      
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+      });
+      setErrors({});
+      
+      alert('Đăng ký thành công! Vui lòng đăng nhập.');
+      onSwitchToLogin();
+      
+    } catch (error) {
+      console.error('Sign up error:', error);
+      const errorMessage = error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
+      setErrors({ submit: errorMessage });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-form">
