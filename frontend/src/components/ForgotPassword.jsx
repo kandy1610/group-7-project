@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import './Auth.css';
 
-const ForgotPassword = ({ onSwitchToLogin, onSwitchToReset }) => {
+const ForgotPassword = ({ onSwitchToLogin }) => { // Xóa onSwitchToReset
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -22,13 +22,14 @@ const ForgotPassword = ({ onSwitchToLogin, onSwitchToReset }) => {
     setMessage('');
 
     try {
-      const response = await axios.post('http://localhost:3000/forgot-password', { email });
-      
-      setMessage(response.data.message);
-      
-      // Hiển thị token cho testing
-      if (response.data.token) {
-        setMessage(prev => prev + ` Token: ${response.data.token}`);
+      const response = await axios.post('http://localhost:3000/api/auth/forgot-password', { email });
+
+      if (response.data.resetToken) {
+        // Nếu có token (testing mode)
+        setMessage(`${response.data.message} Token: ${response.data.resetToken}`);
+      } else {
+        // Nếu email được gửi thành công
+        setMessage(response.data.message);
       }
       
     } catch (error) {
@@ -65,14 +66,12 @@ const ForgotPassword = ({ onSwitchToLogin, onSwitchToReset }) => {
         {message && (
           <div className="success-message">
             {message}
-            <div style={{ marginTop: '10px' }}>
-              <button 
-                type="button" 
-                className="link-btn"
-                onClick={onSwitchToReset}
-              >
-                Đến trang đặt lại mật khẩu
-              </button>
+            {/* ĐÃ XÓA NÚT CHUYỂN HƯỚNG */}
+            <div style={{ marginTop: '10px', fontSize: '14px' }}>
+              <strong>Hướng dẫn:</strong> Sử dụng token trên để truy cập đường link: 
+              <code style={{ marginLeft: '5px', background: '#f5f5f5', padding: '2px 5px' }}>
+                /reset-password/[token]
+              </code>
             </div>
           </div>
         )}

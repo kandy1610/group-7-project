@@ -3,13 +3,29 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import './Auth.css';
 
-const Login = ({ onLoginSuccess, onSwitchToSignUp, onSwitchToForgot  }) => {
+const Login = ({ onLoginSuccess, onSwitchToSignUp, onSwitchToForgot }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // Hàm fetch user profile đầy đủ (có avatar)
+  const fetchUserProfile = async (token, basicUser) => {
+    try {
+      const response = await axios.get('http://localhost:3000/api/auth/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      console.log('✅ Full user profile:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error fetching user profile:', error);
+      // Nếu không lấy được profile, trả về basic user
+      return basicUser;
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,7 +60,7 @@ const Login = ({ onLoginSuccess, onSwitchToSignUp, onSwitchToForgot  }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -54,25 +70,45 @@ const Login = ({ onLoginSuccess, onSwitchToSignUp, onSwitchToForgot  }) => {
     setLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:3000/login', formData);
-      const { token, user } = response.data;
+      const response = await axios.post('http://localhost:3000/api/auth/login', formData);
+      console.log('✅ Login response:', response.data);
 
-      // Lưu token và user info vào localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      const responseData = response.data;
+      
+      if (responseData.token && responseData._id) {
+        // Tạo basic user object từ login response
+        const basicUser = {
+          _id: responseData._id,
+          name: responseData.name,
+          email: responseData.email,
+          role: responseData.role,
+          avatar: responseData.avatar || null
+        };
 
-      // Thông báo thành công và chuyển hướng
-      alert('Đăng nhập thành công!');
-      onLoginSuccess(user);
+        // 🆕 FETCH USER PROFILE ĐẦY ĐỦ (CÓ AVATAR)
+        const fullUser = await fetchUserProfile(responseData.token, basicUser);
+        
+        // Lưu vào localStorage
+        localStorage.setItem('token', responseData.token);
+        localStorage.setItem('user', JSON.stringify(fullUser));
+
+        console.log('✅ Full user data saved:', fullUser);
+        
+        alert('Đăng nhập thành công!');
+        onLoginSuccess(fullUser); // Truyền full user data
+      } else {
+        throw new Error('Dữ liệu đăng nhập không hợp lệ từ server');
+      }
       
     } catch (error) {
       console.error('Login error:', error);
-      const errorMessage = error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.';
+      const errorMessage = error.response?.data?.message || error.message || 'Đăng nhập thất bại. Vui lòng thử lại.';
       setErrors({ submit: errorMessage });
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="auth-form">
