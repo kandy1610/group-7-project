@@ -11,6 +11,7 @@ function App() {
 
   // Hàm fetch users từ API
   const fetchUsers = async () => {
+<<<<<<< HEAD
     console.log("🔄 Fetching users from backend...");
     try {
       setLoading(true);
@@ -31,12 +32,25 @@ function App() {
         error.response?.status === 404
           ? "Backend server không khả dụng. Hãy chắc chắn backend đang chạy trên port 3000!"
           : "Không thể tải danh sách users. Vui lòng kiểm tra backend server."
+=======
+    try {
+      setLoading(true);
+      // SỬA URL: bỏ /api
+      const response = await axios.get("http://localhost:3000/users");
+      setUsers(response.data);
+      setError("");
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      setError(
+        "Không thể tải danh sách users. Vui lòng kiểm tra backend server."
+>>>>>>> ef4b561d466714b09448729e4a6fcc8d22a54fae
       );
     } finally {
       setLoading(false);
     }
   };
 
+<<<<<<< HEAD
   // Hàm xóa user
   const handleDeleteUser = async (userId) => {
     console.log("🗑️ Deleting user:", userId);
@@ -73,6 +87,10 @@ function App() {
   // Fetch users khi component mount
   useEffect(() => {
     console.log("🏁 App component mounted, fetching users...");
+=======
+  // Fetch users khi component mount
+  useEffect(() => {
+>>>>>>> ef4b561d466714b09448729e4a6fcc8d22a54fae
     fetchUsers();
   }, []);
 
@@ -81,6 +99,7 @@ function App() {
       <header className="App-header">
         <h1>🚀 User Management System</h1>
         <p>Quản lý người dùng với React + Node.js</p>
+<<<<<<< HEAD
         <div style={{ fontSize: "14px", marginTop: "10px" }}>
           <strong>Backend Status:</strong>
           <span
@@ -89,6 +108,8 @@ function App() {
             {error ? "❌ Disconnected" : "✅ Connected"}
           </span>
         </div>
+=======
+>>>>>>> ef4b561d466714b09448729e4a6fcc8d22a54fae
       </header>
 
       <main className="main-content">
@@ -96,6 +117,7 @@ function App() {
         <AddUser onUserAdded={fetchUsers} />
 
         {/* Hiển thị loading hoặc error */}
+<<<<<<< HEAD
         {loading && <div className="loading">🔄 Đang tải dữ liệu...</div>}
         {error && (
           <div className="error-message">
@@ -116,6 +138,13 @@ function App() {
             onUpdateUser={handleUpdateUser}
           />
         )}
+=======
+        {loading && <div className="loading">Đang tải dữ liệu...</div>}
+        {error && <div className="error-message">{error}</div>}
+
+        {/* Component hiển thị danh sách users */}
+        {!loading && !error && <UserList users={users} />}
+>>>>>>> ef4b561d466714b09448729e4a6fcc8d22a54fae
       </main>
     </div>
   );
