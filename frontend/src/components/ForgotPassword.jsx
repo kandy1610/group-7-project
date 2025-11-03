@@ -1,0 +1,102 @@
+// src/components/ForgotPassword.jsx
+import React, { useState } from 'react';
+import axios from 'axios';
+import './Auth.css';
+
+const ForgotPassword = ({ onSwitchToLogin }) => { // Xóa onSwitchToReset
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      setError('Vui lòng nhập email');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await axios.post('http://localhost:3000/api/auth/forgot-password', { email });
+
+      if (response.data.resetToken) {
+        // Nếu có token (testing mode)
+        setMessage(`${response.data.message} Token: ${response.data.resetToken}`);
+      } else {
+        // Nếu email được gửi thành công
+        setMessage(response.data.message);
+      }
+      
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      const errorMessage = error.response?.data?.message || 'Gửi yêu cầu thất bại. Vui lòng thử lại.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-form">
+      <h2>🔐 Quên mật khẩu</h2>
+      <p className="auth-description">
+        Nhập email của bạn để nhận link đặt lại mật khẩu.
+        <br />
+        <small>(Token sẽ được hiển thị trong console backend và ở đây để testing)</small>
+      </p>
+      
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="email">Email:</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Nhập email của bạn"
+            className={error ? 'error' : ''}
+          />
+        </div>
+
+        {message && (
+          <div className="success-message">
+            {message}
+            {/* ĐÃ XÓA NÚT CHUYỂN HƯỚNG */}
+            <div style={{ marginTop: '10px', fontSize: '14px' }}>
+              <strong>Hướng dẫn:</strong> Sử dụng token trên để truy cập đường link: 
+              <code style={{ marginLeft: '5px', background: '#f5f5f5', padding: '2px 5px' }}>
+                /reset-password/[token]
+              </code>
+            </div>
+          </div>
+        )}
+        
+        {error && <div className="error-message">{error}</div>}
+
+        <button 
+          type="submit" 
+          disabled={loading}
+          className={`auth-btn ${loading ? 'loading' : ''}`}
+        >
+          {loading ? '🔄 Đang gửi...' : '📧 Gửi link đặt lại mật khẩu'}
+        </button>
+      </form>
+
+      <div className="auth-switch">
+        <p>
+          Quay lại? 
+          <button type="button" className="link-btn" onClick={onSwitchToLogin}>
+            Đăng nhập
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default ForgotPassword;

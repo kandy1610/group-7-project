@@ -1,69 +1,53 @@
-<<<<<<< HEAD
 // controllers/userController.js
 const User = require("../models/User");
 const mongoose = require("mongoose");
 
-// GET all users
-=======
-const User = require("../models/User");
-
-// GET all users - LẤY TẤT CẢ USER TỪ MONGODB
->>>>>>> ef4b561d466714b09448729e4a6fcc8d22a54fae
+// GET all users - CHỈ ADMIN
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find();
+    // Kiểm tra role
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admin only." });
+    }
+
+    const users = await User.find().select("-password");
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
-<<<<<<< HEAD
-=======
   }
 };
 
-// POST new user - THÊM USER MỚI VÀO MONGODB
+// ADD new user - CHỈ ADMIN (hoặc có thể để public cho signup)
 exports.addUser = async (req, res) => {
-  const { name, email } = req.body;
-
-  // Validation
-  if (!name || !email) {
-    return res.status(400).json({ message: "Thiếu thông tin người dùng!" });
-  }
-
   try {
-    // Tạo user mới - MongoDB sẽ tự tạo _id
-    const newUser = new User({
-      name: name,
-      email: email,
-    });
-
-    // Lưu vào database
-    const savedUser = await newUser.save();
-    res.status(201).json(savedUser);
-  } catch (err) {
-    // Xử lý lỗi duplicate email
-    if (err.code === 11000) {
-      return res.status(400).json({ message: "Email đã tồn tại!" });
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admin only." });
     }
-    res.status(400).json({ message: err.message });
->>>>>>> ef4b561d466714b09448729e4a6fcc8d22a54fae
-  }
-};
 
-// ADD new user
-exports.addUser = async (req, res) => {
-  try {
     console.log("ADD USER - Request body:", req.body);
 
-    const { name, email } = req.body;
+    const { name, email, password, role } = req.body;
 
-    if (!name || !email) {
-      return res.status(400).json({ message: "Name and email are required" });
+    if (!name || !email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Name, email and password are required" });
     }
 
-    const user = new User({ name, email });
+    const user = new User({ name, email, password, role });
     const savedUser = await user.save();
 
-    res.status(201).json(savedUser);
+    // Không trả về password
+    const userResponse = {
+      _id: savedUser._id,
+      name: savedUser.name,
+      email: savedUser.email,
+      role: savedUser.role,
+      createdAt: savedUser.createdAt,
+      updatedAt: savedUser.updatedAt,
+    };
+
+    res.status(201).json(userResponse);
   } catch (err) {
     if (err.code === 11000) {
       return res.status(400).json({ message: "Email already exists" });
@@ -72,24 +56,31 @@ exports.addUser = async (req, res) => {
   }
 };
 
-// UPDATE user
+// UPDATE user - ADMIN hoặc chính user đó
 exports.updateUser = async (req, res) => {
   try {
-    console.log("UPDATE USER - Request body:", req.body);
-    console.log("UPDATE USER - Params ID:", req.params.id);
-
     const { id } = req.params;
-    const { name, email } = req.body;
+    const { name, email, role } = req.body;
+
+    // Kiểm tra quyền: admin có thể update bất kỳ user, user chỉ update chính mình
+    if (req.user.role !== "admin" && req.user.id !== id) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    // User thường không thể thay đổi role
+    if (req.user.role !== "admin" && role) {
+      return res.status(403).json({ message: "Only admin can change role" });
+    }
 
     // Kiểm tra body
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({ message: "Request body is empty" });
     }
 
-    if (!name && !email) {
+    if (!name && !email && !role) {
       return res
         .status(400)
-        .json({ message: "Provide name or email to update" });
+        .json({ message: "Provide name, email or role to update" });
     }
 
     // Kiểm tra ID hợp lệ
@@ -100,11 +91,12 @@ exports.updateUser = async (req, res) => {
     const updateData = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
+    if (role && req.user.role === "admin") updateData.role = role;
 
     const updatedUser = await User.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
-    });
+    }).select("-password");
 
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
@@ -122,10 +114,15 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// DELETE user
+// DELETE user - ADMIN hoặc chính user đó
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Kiểm tra quyền: admin có thể xóa bất kỳ user, user chỉ xóa chính mình
+    if (req.user.role !== "admin" && req.user.id !== id) {
+      return res.status(403).json({ message: "Access denied" });
+    }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid user ID" });
@@ -138,6 +135,32 @@ exports.deleteUser = async (req, res) => {
     }
 
     res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET user by ID - ADMIN hoặc chính user đó
+exports.getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Kiểm tra quyền
+    if (req.user.role !== "admin" && req.user.id !== id) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const user = await User.findById(id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
