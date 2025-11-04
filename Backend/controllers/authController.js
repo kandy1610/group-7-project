@@ -147,9 +147,7 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // Tạo URL reset password
-    const resetUrl = `${
-      process.env.FRONTEND_URL || "http://localhost:3001"
-    }/reset-password/${resetToken}`;
+    const resetUrl = `https://group-7-project-mpix2fa63-minhkys-projects-1275da88.vercel.app/reset-password/${resetToken}`;
 
     // Cấu hình email template
     const mailOptions = {
@@ -288,7 +286,14 @@ exports.uploadAvatar = async (req, res) => {
     }
 
     // Tạo URL đầy đủ
-    const avatarUrl = `http://localhost:3000/uploads/${req.file.filename}`;
+    const getBaseUrl = () => {
+      if (process.env.NODE_ENV === "production") {
+        return "https://group-7-project-tqac.onrender.com";
+      }
+      return `${req.protocol}://${req.get("host")}`;
+    };
+
+    const avatarUrl = `${getBaseUrl()}/uploads/${req.file.filename}`;
 
     // Cập nhật avatar URL trong database
     const user = await User.findByIdAndUpdate(
