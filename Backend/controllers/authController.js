@@ -299,15 +299,10 @@ exports.uploadAvatar = async (req, res) => {
       return res.status(400).json({ message: "Please upload a file" });
     }
 
-    // Tạo URL đầy đủ
-    const getBaseUrl = () => {
-      if (process.env.NODE_ENV === "production") {
-        return "https://group-7-project-tqac.onrender.com";
-      }
-      return `${req.protocol}://${req.get("host")}`;
-    };
+    // SỬA: LUÔN DÙNG PRODUCTION URL CHO ẢNH
+    const avatarUrl = `https://group-7-project-tqac.onrender.com/uploads/${req.file.filename}`;
 
-    const avatarUrl = `${getBaseUrl()}/uploads/${req.file.filename}`;
+    console.log("🖼️ Avatar uploaded:", avatarUrl);
 
     // Cập nhật avatar URL trong database
     const user = await User.findByIdAndUpdate(
@@ -316,13 +311,13 @@ exports.uploadAvatar = async (req, res) => {
       { new: true }
     ).select("-password");
 
-    // SỬA: Trả về user thay vì chỉ avatar
     res.json({
       success: true,
       message: "Avatar uploaded successfully",
-      user: user, // Trả về toàn bộ user object
+      user: user,
     });
   } catch (error) {
+    console.error("❌ Upload avatar error:", error);
     // Xóa file tạm nếu có lỗi
     if (req.file) {
       fs.unlinkSync(req.file.path);

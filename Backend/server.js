@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path"); // ĐẢM BẢO ĐÃ IMPORT PATH
 require("dotenv").config();
 
 const app = express();
@@ -16,7 +17,7 @@ app.use(
       "https://group-7-project-mmw4c4rx5-minhkys-projects-1275da88.vercel.app",
       "https://group-7-project-amiw-e14tdpsrn-minhkys-projects-1275da88.vercel.app",
       "https://group-7-project-*.vercel.app",
-      /\.vercel\.app$/, // Regex để match tất cả subdomain vercel
+      /\.vercel\.app$/,
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
@@ -34,19 +35,27 @@ app.use(
     optionsSuccessStatus: 204,
   })
 );
-app.options("*", cors());
+
+// QUAN TRỌNG: ĐẶT STATIC FILE SERVING TRƯỚC app.listen()
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // Middleware khác
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Debug middleware
+// Debug middleware (có thể tắt bớt để giảm log)
 app.use((req, res, next) => {
-  console.log("=== REQUEST DEBUG ===");
-  console.log("Method:", req.method);
-  console.log("URL:", req.url);
-  console.log("Headers:", req.headers);
-  console.log("Body:", req.body);
-  console.log("=====================");
+  if (!req.url.includes("/uploads")) {
+    // Không log request ảnh
+    console.log("=== REQUEST DEBUG ===");
+    console.log("Method:", req.method);
+    console.log("URL:", req.url);
+    console.log("Headers:", req.headers);
+    if (req.method !== "GET") {
+      console.log("Body:", req.body);
+    }
+    console.log("=====================");
+  }
   next();
 });
 
@@ -69,6 +78,7 @@ const authRoutes = require("./routes/auth");
 app.use("/api", userRoutes);
 app.use("/api/auth", authRoutes);
 
+// Test routes
 app.get("/api/debug", (req, res) => {
   res.json({
     message: "Backend is working!",
@@ -83,7 +93,6 @@ app.get("/api/debug", (req, res) => {
   });
 });
 
-// Test route
 app.get("/api/test", (req, res) => {
   res.json({
     message: "Server is working!",
@@ -91,15 +100,35 @@ app.get("/api/test", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
-// Test auth route không cần token
+
 app.get("/api/auth/test", (req, res) => {
   res.json({ message: "Auth routes are working!" });
+});
+
+// THÊM ROUTE ĐỂ KIỂM TRA STATIC FILES
+app.get("/api/check-uploads", (req, res) => {
+  const fs = require("fs");
+  const uploadsPath = path.join(__dirname, "uploads");
+
+  try {
+    const files = fs.readdirSync(uploadsPath);
+    res.json({
+      message: "Uploads directory exists",
+      fileCount: files.length,
+      files: files,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Uploads directory error",
+      error: error.message,
+    });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(
+    `📁 Static files serving from: ${path.join(__dirname, "uploads")}`
+  );
 });
-
-const path = require("path");
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));

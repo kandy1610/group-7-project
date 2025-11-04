@@ -18,7 +18,7 @@ function App() {
   const [activeTab, setActiveTab] = useState("users");
   const [authMode, setAuthMode] = useState("login");
 
-  // Hàm fetch users từ API
+  // Hàm fetchUsers - THÊM DEBUG CHI TIẾT
   const fetchUsers = async () => {
     console.log("🔄 Fetching users from backend...");
     try {
@@ -41,11 +41,22 @@ function App() {
         },
       };
 
+      console.log("📤 Sending request to:", API_ENDPOINTS.USERS.GET_ALL);
+
       const response = await axios.get(API_ENDPOINTS.USERS.GET_ALL, config);
       console.log("✅ Users fetched successfully:", response.data);
       setUsers(response.data);
     } catch (error) {
       console.error("❌ Error fetching users:", error);
+
+      // DEBUG CHI TIẾT HƠN
+      if (error.response) {
+        console.error("📊 Response data:", error.response.data);
+        console.error("🔢 Status code:", error.response.status);
+        console.error("📋 Response headers:", error.response.headers);
+      } else if (error.request) {
+        console.error("🌐 No response received:", error.request);
+      }
 
       if (error.response?.status === 401) {
         setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
@@ -55,6 +66,12 @@ function App() {
         setShowAuth(true);
       } else if (error.response?.status === 403) {
         setError("Bạn không có quyền truy cập tính năng này.");
+      } else if (error.response?.status === 400) {
+        // THÊM XỬ LÝ LỖI 400 CỤ THỂ
+        const errorMsg =
+          error.response?.data?.message ||
+          "Bad request - Kiểm tra token và quyền truy cập";
+        setError(`Lỗi request: ${errorMsg}`);
       } else {
         setError(
           "Không thể tải danh sách users: " + (error.message || "Lỗi kết nối")
@@ -192,9 +209,20 @@ function App() {
           const freshUser = await fetchCurrentUser();
           const parsedUser = freshUser || JSON.parse(userData);
 
+          console.log("👑 User role:", parsedUser.role);
+          console.log("🆔 User ID:", parsedUser._id);
+
           setCurrentUser(parsedUser);
           setShowAuth(false);
           console.log("✅ User authenticated:", parsedUser);
+
+          // CHỈ FETCH USERS NẾU LÀ ADMIN
+          if (parsedUser.role === "admin") {
+            fetchUsers();
+          } else {
+            console.log("ℹ️ User is not admin, skipping users fetch");
+            setError("Bạn cần quyền admin để xem danh sách users");
+          }
 
           if (freshUser) {
             localStorage.setItem("user", JSON.stringify(freshUser));
@@ -210,11 +238,6 @@ function App() {
     } else {
       console.log("ℹ️ No valid token or user data found");
       setShowAuth(true);
-    }
-
-    // Chỉ fetch users nếu đã đăng nhập
-    if (token) {
-      fetchUsers();
     }
   }, []);
 
