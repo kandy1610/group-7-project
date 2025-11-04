@@ -8,27 +8,18 @@ const app = express();
 // MIDDLEWARE
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Cho phép tất cả origin trong production, hoặc chỉ specific origins trong development
-      if (!origin || process.env.NODE_ENV === "production") {
-        callback(null, true);
-      } else {
-        const allowedOrigins = [
-          "http://localhost:3001",
-          "https://group-7-project-mmw4c4rx5-minhkys-projects-1275da88.vercel.app",
-        ];
-        if (allowedOrigins.indexOf(origin) !== -1) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
-      }
-    },
+    origin: [
+      "http://localhost:3001",
+      "https://group-7-project-mpix2fa63-minhkys-projects-1275da88.vercel.app",
+      "https://group-7-project-mmw4c4rx5-minhkys-projects-1275da88.vercel.app",
+      "https://group-7-project.vercel.app",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
+
 // Middleware khác
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
