@@ -73,12 +73,13 @@ const ResetPassword = ({ autoFilledToken, onSwitchToLogin }) => {
   setMessage('');
 
   try {
-    // SỬA ENDPOINT - token đã nằm trong URL, không cần truyền trong body
+    // ✅ ĐẢM BẢO ENDPOINT ĐÚNG
     const response = await axios.put(
       `${API_ENDPOINTS.AUTH.RESET_PASSWORD}/${formData.token}`, 
       { 
         password: formData.newPassword 
-      }
+      },
+      { timeout: 10000 }
     );
     
     setMessage(response.data.message || 'Đặt lại mật khẩu thành công!');
@@ -96,7 +97,15 @@ const ResetPassword = ({ autoFilledToken, onSwitchToLogin }) => {
     
   } catch (error) {
     console.error('Reset password error:', error);
-    const errorMessage = error.response?.data?.message || 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.';
+    
+    let errorMessage = 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.';
+    
+    if (error.code === 'ECONNABORTED') {
+      errorMessage = 'Request timeout - Vui lòng thử lại';
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    }
+    
     setError(errorMessage);
   } finally {
     setLoading(false);
