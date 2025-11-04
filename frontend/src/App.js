@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import UserList from "./components/UserList";
 import AddUser from "./components/AddUser";
+import Login from "./components/Login";
+import SignUp from "./components/SignUp";
+import Profile from "./components/Profile";
+import ForgotPassword from "./components/ForgotPassword";
 import { API_ENDPOINTS } from "./config/api";
 import "./App.css";
 
@@ -9,6 +13,10 @@ function App() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showAuth, setShowAuth] = useState(true);
+  const [activeTab, setActiveTab] = useState("users");
+  const [authMode, setAuthMode] = useState("login");
 
   // Hàm fetch users từ API
   const fetchUsers = async () => {
@@ -26,7 +34,6 @@ function App() {
         return;
       }
 
-      // ✅ ĐỊNH NGHĨA config TRƯỚC KHI SỬ DỤNG
       const config = {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -38,10 +45,42 @@ function App() {
       console.log("✅ Users fetched successfully:", response.data);
       setUsers(response.data);
     } catch (error) {
-      // ... phần xử lý lỗi giữ nguyên
+      console.error("❌ Error fetching users:", error);
+
+      if (error.response?.status === 401) {
+        setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setCurrentUser(null);
+        setShowAuth(true);
+      } else if (error.response?.status === 403) {
+        setError("Bạn không có quyền truy cập tính năng này.");
+      } else {
+        setError(
+          "Không thể tải danh sách users: " + (error.message || "Lỗi kết nối")
+        );
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  // Hàm xử lý đăng nhập thành công
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
+    setShowAuth(false);
+    fetchUsers();
+  };
+
+  // Hàm xử lý đăng xuất
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setCurrentUser(null);
+    setShowAuth(true);
+    setAuthMode("login");
+    setUsers([]);
+    setActiveTab("users");
   };
 
   // Hàm xóa user
@@ -49,7 +88,6 @@ function App() {
     console.log("🗑️ Deleting user:", userId);
     try {
       const token = localStorage.getItem("token");
-      // ✅ THÊM ĐỊNH NGHĨA config
       const config = {
         headers: { Authorization: `Bearer ${token}` },
       };
@@ -71,7 +109,6 @@ function App() {
     console.log("✏️ Updating user:", userId, updatedData);
     try {
       const token = localStorage.getItem("token");
-      // ✅ THÊM ĐỊNH NGHĨA config
       const config = {
         headers: { Authorization: `Bearer ${token}` },
       };
@@ -89,10 +126,96 @@ function App() {
     }
   };
 
-  // Fetch users khi component mount
-  useEffect(() => {
-    console.log("🏁 App component mounted, fetching users...");
+  // Hàm cập nhật profile
+  const handleUpdateProfile = (updatedUser) => {
+    setCurrentUser(updatedUser);
     fetchUsers();
+  };
+
+  // Các hàm chuyển đổi auth mode
+  const switchToSignUp = () => setAuthMode("signup");
+  const switchToLogin = () => setAuthMode("login");
+  const switchToForgot = () => setAuthMode("forgot");
+
+  // Render auth form
+  const renderAuthForm = () => {
+    switch (authMode) {
+      case "login":
+        return (
+          <Login
+            onLoginSuccess={handleLoginSuccess}
+            onSwitchToSignUp={switchToSignUp}
+            onSwitchToForgot={switchToForgot}
+          />
+        );
+      case "signup":
+        return <SignUp onSwitchToLogin={switchToLogin} />;
+      case "forgot":
+        return <ForgotPassword onSwitchToLogin={switchToLogin} />;
+      default:
+        return (
+          <Login
+            onLoginSuccess={handleLoginSuccess}
+            onSwitchToSignUp={switchToSignUp}
+            onSwitchToForgot={switchToForgot}
+          />
+        );
+    }
+  };
+
+  const fetchCurrentUser = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    try {
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+      };
+      const response = await axios.get(API_ENDPOINTS.AUTH.PROFILE, config);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+
+    console.log("🔑 Token from storage:", token);
+    console.log("👤 User data from storage:", userData);
+
+    if (token && userData && userData !== "undefined" && userData !== "null") {
+      const loadUser = async () => {
+        try {
+          const freshUser = await fetchCurrentUser();
+          const parsedUser = freshUser || JSON.parse(userData);
+
+          setCurrentUser(parsedUser);
+          setShowAuth(false);
+          console.log("✅ User authenticated:", parsedUser);
+
+          if (freshUser) {
+            localStorage.setItem("user", JSON.stringify(freshUser));
+          }
+        } catch (error) {
+          console.error("❌ Error loading user data:", error);
+          localStorage.removeItem("user");
+          localStorage.removeItem("token");
+        }
+      };
+
+      loadUser();
+    } else {
+      console.log("ℹ️ No valid token or user data found");
+      setShowAuth(true);
+    }
+
+    // Chỉ fetch users nếu đã đăng nhập
+    if (token) {
+      fetchUsers();
+    }
   }, []);
 
   return (
@@ -100,6 +223,41 @@ function App() {
       <header className="App-header">
         <h1>🚀 User Management System</h1>
         <p>Quản lý người dùng với React + Node.js</p>
+
+        {currentUser && (
+          <div className="user-info">
+            <div className="user-avatar">
+              {currentUser.avatar ? (
+                <img
+                  src={currentUser.avatar}
+                  alt="Avatar"
+                  className="avatar-small"
+                />
+              ) : (
+                <span>👤</span>
+              )}
+              <span>Xin chào, {currentUser.name}</span>
+            </div>
+            <div className="header-buttons">
+              <button
+                onClick={() => setActiveTab("profile")}
+                className={`tab-btn ${activeTab === "profile" ? "active" : ""}`}
+              >
+                👤 Profile
+              </button>
+              <button
+                onClick={() => setActiveTab("users")}
+                className={`tab-btn ${activeTab === "users" ? "active" : ""}`}
+              >
+                📋 Users
+              </button>
+              <button onClick={handleLogout} className="logout-btn">
+                🚪 Đăng xuất
+              </button>
+            </div>
+          </div>
+        )}
+
         <div style={{ fontSize: "14px", marginTop: "10px" }}>
           <strong>Backend Status:</strong>
           <span
@@ -111,29 +269,43 @@ function App() {
       </header>
 
       <main className="main-content">
-        {/* Component thêm user */}
-        <AddUser onUserAdded={fetchUsers} />
+        {showAuth ? (
+          <div className="auth-container">{renderAuthForm()}</div>
+        ) : (
+          <>
+            {activeTab === "users" ? (
+              <>
+                <AddUser onUserAdded={fetchUsers} />
 
-        {/* Hiển thị loading hoặc error */}
-        {loading && <div className="loading">🔄 Đang tải dữ liệu...</div>}
-        {error && (
-          <div className="error-message">
-            <strong>❌ Lỗi:</strong> {error}
-            <div style={{ marginTop: "10px", fontSize: "14px" }}>
-              <button onClick={fetchUsers} className="btn-retry">
-                🔄 Thử lại
-              </button>
-            </div>
-          </div>
-        )}
+                {loading && (
+                  <div className="loading">🔄 Đang tải dữ liệu...</div>
+                )}
+                {error && (
+                  <div className="error-message">
+                    <strong>❌ Lỗi:</strong> {error}
+                    <div style={{ marginTop: "10px", fontSize: "14px" }}>
+                      <button onClick={fetchUsers} className="btn-retry">
+                        🔄 Thử lại
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-        {/* Component hiển thị danh sách users */}
-        {!loading && !error && (
-          <UserList
-            users={users}
-            onDeleteUser={handleDeleteUser}
-            onUpdateUser={handleUpdateUser}
-          />
+                {!loading && !error && (
+                  <UserList
+                    users={users}
+                    onDeleteUser={handleDeleteUser}
+                    onUpdateUser={handleUpdateUser}
+                  />
+                )}
+              </>
+            ) : (
+              <Profile
+                currentUser={currentUser}
+                onUpdateSuccess={handleUpdateProfile}
+              />
+            )}
+          </>
         )}
       </main>
     </div>
