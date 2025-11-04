@@ -147,7 +147,7 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // Tạo URL reset password
-    const resetUrl = `https://group-7-project-mpix2fa63-minhkys-projects-1275da88.vercel.app/reset-password/${resetToken}`;
+    const resetUrl = `https://group-7-project-mmw4c4rx5-minhkys-projects-1275da88.vercel.app/reset-password/${resetToken}`;
 
     // Cấu hình email template
     const mailOptions = {

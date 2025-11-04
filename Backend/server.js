@@ -15,7 +15,7 @@ app.use(
       } else {
         const allowedOrigins = [
           "http://localhost:3001",
-          "https://group-7-project-mpix2fa63-minhkys-projects-1275da88.vercel.app",
+          "https://group-7-project-mmw4c4rx5-minhkys-projects-1275da88.vercel.app",
         ];
         if (allowedOrigins.indexOf(origin) !== -1) {
           callback(null, true);
