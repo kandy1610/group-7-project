@@ -13,7 +13,7 @@ app.use(
       "https://group-7-project-xi.vercel.app",
       "https://group-7-project-git-main-minhkys-projects-1275da88.vercel.app",
       "https://group-7-project-mmw4c4rx5-minhkys-projects-1275da88.vercel.app",
-      "https://group-7-project-*.vercel.app", // Pattern cho tất cả subdomains
+      "https://group-7-project-*.vercel.app",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
