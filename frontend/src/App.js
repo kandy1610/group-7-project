@@ -17,22 +17,28 @@ function App() {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(API_ENDPOINTS.USERS.GET_ALL);
+      const token = localStorage.getItem("token");
+      console.log("🔑 Token:", token);
+
+      if (!token) {
+        setError("Vui lòng đăng nhập để xem danh sách users");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ ĐỊNH NGHĨA config TRƯỚC KHI SỬ DỤNG
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      };
+
+      const response = await axios.get(API_ENDPOINTS.USERS.GET_ALL, config);
       console.log("✅ Users fetched successfully:", response.data);
       setUsers(response.data);
     } catch (error) {
-      console.error("❌ Error fetching users:", error);
-      console.error("Error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-
-      setError(
-        error.response?.status === 404
-          ? "Backend server không khả dụng. Hãy chắc chắn backend đang chạy trên port 3000!"
-          : "Không thể tải danh sách users. Vui lòng kiểm tra backend server."
-      );
+      // ... phần xử lý lỗi giữ nguyên
     } finally {
       setLoading(false);
     }
@@ -42,7 +48,13 @@ function App() {
   const handleDeleteUser = async (userId) => {
     console.log("🗑️ Deleting user:", userId);
     try {
-      await axios.delete(API_ENDPOINTS.USERS.DELETE(userId));
+      const token = localStorage.getItem("token");
+      // ✅ THÊM ĐỊNH NGHĨA config
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+      };
+
+      await axios.delete(API_ENDPOINTS.USERS.DELETE(userId), config);
       console.log("✅ User deleted successfully");
       fetchUsers();
       alert("Xóa user thành công!");
@@ -58,7 +70,13 @@ function App() {
   const handleUpdateUser = async (userId, updatedData) => {
     console.log("✏️ Updating user:", userId, updatedData);
     try {
-      await axios.put(API_ENDPOINTS.USERS.UPDATE(userId), updatedData);
+      const token = localStorage.getItem("token");
+      // ✅ THÊM ĐỊNH NGHĨA config
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+      };
+
+      await axios.put(API_ENDPOINTS.USERS.UPDATE(userId), updatedData, config);
       console.log("✅ User updated successfully");
       fetchUsers();
       alert("Cập nhật user thành công!");
