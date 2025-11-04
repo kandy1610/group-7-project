@@ -10,16 +10,16 @@ app.use(
   cors({
     origin: [
       "http://localhost:3001",
-      "https://group-7-project-xi.vercel.app", // ⭐ DOMAIN CHÍNH
-      "https://group-7-project-mmw4c4rx5-minhkys-projects-1275da88.vercel.app", // Domain phụ
-      "https://group-7-project.vercel.app", // Domain alias
+      "https://group-7-project-xi.vercel.app",
+      "https://group-7-project-git-main-minhkys-projects-1275da88.vercel.app",
+      "https://group-7-project-mmw4c4rx5-minhkys-projects-1275da88.vercel.app",
+      "https://group-7-project-*.vercel.app", // Pattern cho tất cả subdomains
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
-
 // Middleware khác
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

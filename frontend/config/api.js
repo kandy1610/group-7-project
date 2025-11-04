@@ -1,5 +1,4 @@
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "https://group-7-project-tqac.onrender.com";
+const API_BASE_URL = "https://group-7-project-tqac.onrender.com";
 
 export const API_ENDPOINTS = {
   AUTH: {
