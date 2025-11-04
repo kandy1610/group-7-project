@@ -62,55 +62,41 @@ const ResetPassword = ({ autoFilledToken, onSwitchToLogin }) => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!validateForm()) {
-    return;
-  }
-
-  setLoading(true);
-  setError('');
-  setMessage('');
-
-  try {
-    // ✅ ĐẢM BẢO ENDPOINT ĐÚNG
-    const response = await axios.put(
-      `${API_ENDPOINTS.AUTH.RESET_PASSWORD}/${formData.token}`, 
-      { 
-        password: formData.newPassword 
-      },
-      { timeout: 10000 }
-    );
+    e.preventDefault();
     
-    setMessage(response.data.message || 'Đặt lại mật khẩu thành công!');
-    
-    // Reset form
-    setFormData({
-      token: '',
-      newPassword: '',
-      confirmPassword: ''
-    });
-    
-    setTimeout(() => {
-      navigate('/');
-    }, 3000);
-    
-  } catch (error) {
-    console.error('Reset password error:', error);
-    
-    let errorMessage = 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.';
-    
-    if (error.code === 'ECONNABORTED') {
-      errorMessage = 'Request timeout - Vui lòng thử lại';
-    } else if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
+    if (!validateForm()) {
+      return;
     }
-    
-    setError(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+     const response = await axios.put(`${API_ENDPOINTS.AUTH.RESET_PASSWORD}/${formData.token}`, { password: formData.newPassword });
+      
+      setMessage(response.data.message || 'Đặt lại mật khẩu thành công!');
+      
+      // Reset form
+      setFormData({
+        token: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      
+      // Tự động chuyển hướng sau 3 giây
+      setTimeout(() => {
+        navigate('/');
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Reset password error:', error);
+      const errorMessage = error.response?.data?.message || 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-form">

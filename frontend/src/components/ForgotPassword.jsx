@@ -11,54 +11,36 @@ const ForgotPassword = ({ onSwitchToLogin }) => { // Xóa onSwitchToReset
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!email.trim()) {
-    setError('Vui lòng nhập email');
-    return;
-  }
-
-  setLoading(true);
-  setError('');
-  setMessage('');
-
-  try {
-    const response = await axios.post(
-      API_ENDPOINTS.AUTH.FORGOT_PASSWORD, 
-      { email },
-      { timeout: 15000 } // Thêm timeout
-    );
-
-    // ✅ SỬA: Kiểm tra debugToken thay vì resetToken
-    if (response.data.debugToken) {
-      setMessage(`${response.data.message} 
-        \n\n🔑 Token để test: ${response.data.debugToken}
-        \n📎 Link reset: https://group-7-project-amiw.vercel.app/reset-password/${response.data.debugToken}`);
-    } else {
-      setMessage(response.data.message);
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      setError('Vui lòng nhập email');
+      return;
     }
-    
-  } catch (error) {
-    console.error('Forgot password error:', error);
-    
-    let errorMessage = 'Gửi yêu cầu thất bại. Vui lòng thử lại.';
-    
-    if (error.code === 'ECONNABORTED') {
-      errorMessage = 'Request timeout - Server đang bận, vui lòng thử lại sau';
-    } else if (error.response?.data?.debugToken) {
-      // ✅ HIỂN THỊ TOKEN NGAY CẢ KHI CÓ LỖI
-      errorMessage = `${error.response.data.message} 
-        \n\n🔑 Token để test: ${error.response.data.debugToken}
-        \n📎 Link reset: https://group-7-project-amiw.vercel.app/reset-password/${error.response.data.debugToken}`;
-    } else if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
+
+    setLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+     const response = await axios.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email })
+
+      if (response.data.resetToken) {
+        // Nếu có token (testing mode)
+        setMessage(`${response.data.message} Token: ${response.data.resetToken}`);
+      } else {
+        // Nếu email được gửi thành công
+        setMessage(response.data.message);
+      }
+      
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      const errorMessage = error.response?.data?.message || 'Gửi yêu cầu thất bại. Vui lòng thử lại.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
-    
-    setError(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="auth-form">
