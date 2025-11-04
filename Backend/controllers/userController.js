@@ -5,14 +5,25 @@ const mongoose = require("mongoose");
 // GET all users - CHỈ ADMIN
 exports.getUsers = async (req, res) => {
   try {
+    console.log("🔐 getUsers called - User making request:", {
+      id: req.user.id,
+      role: req.user.role,
+      name: req.user.name,
+    });
+
     // Kiểm tra role
     if (req.user.role !== "admin") {
+      console.log("❌ Access denied: User is not admin");
       return res.status(403).json({ message: "Access denied. Admin only." });
     }
 
+    console.log("✅ User is admin, fetching users...");
     const users = await User.find().select("-password");
+
+    console.log(`📊 Found ${users.length} users`);
     res.json(users);
   } catch (err) {
+    console.error("❌ getUsers error:", err);
     res.status(500).json({ message: err.message });
   }
 };
