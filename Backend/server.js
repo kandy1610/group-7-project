@@ -70,6 +70,12 @@ mongoose
     console.error("❌ MongoDB connection error:", err);
     console.log("🔍 MONGO_URI:", process.env.MONGO_URI ? "Exists" : "Missing");
   });
+app.use("/api/users", (req, res, next) => {
+  console.log(`🎯 USERS ROUTE HIT: ${req.method} ${req.originalUrl}`);
+  console.log(`🎯 Route params:`, req.params);
+  console.log(`🎯 Query params:`, req.query);
+  next();
+});
 
 // Import routes
 const userRoutes = require("./routes/user");
