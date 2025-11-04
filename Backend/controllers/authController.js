@@ -244,10 +244,21 @@ exports.forgotPassword = async (req, res) => {
 // Reset Password - THÊM HÀM NÀY
 exports.resetPassword = async (req, res) => {
   try {
-    const { token } = req.params;
+    const { token } = req.params; // ĐÚNG: token từ URL params
     const { password } = req.body;
 
-    // Hash token để so sánh với token trong database
+    console.log("🔑 Reset password token:", token);
+    console.log("🔑 New password:", password ? "Provided" : "Missing");
+
+    if (!token) {
+      return res.status(400).json({ message: "Reset token is required" });
+    }
+
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
+
+    // Hash token để so sánh
     const resetPasswordToken = crypto
       .createHash("sha256")
       .update(token)
@@ -273,9 +284,10 @@ exports.resetPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Password reset successful",
+      message: "Password reset successfully",
     });
   } catch (error) {
+    console.error("❌ Reset password error:", error);
     res.status(500).json({ message: error.message });
   }
 };

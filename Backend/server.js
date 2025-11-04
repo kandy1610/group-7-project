@@ -10,16 +10,31 @@ app.use(
   cors({
     origin: [
       "http://localhost:3001",
+      "http://localhost:3000",
       "https://group-7-project-xi.vercel.app",
       "https://group-7-project-git-main-minhkys-projects-1275da88.vercel.app",
       "https://group-7-project-mmw4c4rx5-minhkys-projects-1275da88.vercel.app",
+      "https://group-7-project-amiw-e14tdpsrn-minhkys-projects-1275da88.vercel.app",
       "https://group-7-project-*.vercel.app",
+      /\.vercel\.app$/, // Regex để match tất cả subdomain vercel
     ],
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+      "Access-Control-Request-Method",
+      "Access-Control-Request-Headers",
+    ],
+    exposedHeaders: ["Content-Range", "X-Content-Range"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   })
 );
+app.options("*", cors());
 // Middleware khác
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

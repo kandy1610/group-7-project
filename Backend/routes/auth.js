@@ -23,4 +23,8 @@ router.post(
 router.put("/upload-avatar-url", protect, authController.uploadAvatarFromUrl);
 router.delete("/avatar", protect, authController.deleteAvatar);
 
+router.get("/test", (req, res) => {
+  res.json({ message: "Auth routes are working!" });
+});
+
 module.exports = router;
