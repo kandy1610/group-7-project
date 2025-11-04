@@ -13,11 +13,11 @@ export const API_ENDPOINTS = {
     UPLOAD_AVATAR_URL: `${API_BASE_URL}/api/auth/upload-avatar-url`,
   },
   USERS: {
-    BASE: `${API_BASE_URL}/api`,
-    GET_ALL: `${API_BASE_URL}/api`,
-    GET_BY_ID: (id) => `${API_BASE_URL}/api/${id}`,
-    UPDATE: (id) => `${API_BASE_URL}/api/${id}`,
-    DELETE: (id) => `${API_BASE_URL}/api/${id}`,
+    BASE: `${API_BASE_URL}/api/users`,
+    GET_ALL: `${API_BASE_URL}/api/users`,
+    GET_BY_ID: (id) => `${API_BASE_URL}/api/users/${id}`,
+    UPDATE: (id) => `${API_BASE_URL}/api/users/${id}`,
+    DELETE: (id) => `${API_BASE_URL}/api/users/${id}`,
   },
 };
 
