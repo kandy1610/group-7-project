@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-
+import { API_ENDPOINTS } from '../config/api';
+  
 const AddUser = ({ onUserAdded }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -68,7 +69,7 @@ const AddUser = ({ onUserAdded }) => {
       password: "123456" // Password mặc định
     };
 
-    const response = await axios.post('http://localhost:3000/api/', userData, config);
+    const response = await axios.post(API_ENDPOINTS.USERS.BASE, userData, config);
     console.log('User added:', response.data);
     
     setFormData({ name: '', email: '' });

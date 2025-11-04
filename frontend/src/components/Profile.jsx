@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './Profile.css';
+import { API_ENDPOINTS } from '../config/api';
 
 const Profile = ({ currentUser, onUpdateSuccess }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -126,11 +127,7 @@ const Profile = ({ currentUser, onUpdateSuccess }) => {
       timeout: 15000 // 🆕 THÊM TIMEOUT 15s
     };
 
-    const response = await axios.post(
-      'http://localhost:3000/api/auth/upload-avatar', 
-      uploadFormData, 
-      config
-    );
+    const response = await axios.post(API_ENDPOINTS.AUTH.UPLOAD_AVATAR, uploadFormData, config);
     
     // 🆕 KIỂM TRA RESPONSE KỸ HƠN
     if (!response.data || !response.data.user) {
@@ -232,11 +229,7 @@ const Profile = ({ currentUser, onUpdateSuccess }) => {
     };
 
     // 🆕 THÊM TIMEOUT CHO REQUEST
-    const response = await axios.put(
-      'http://localhost:3000/api/auth/upload-avatar-url', 
-      { avatarUrl: formData.avatar }, 
-      { ...config, timeout: 10000 } // 10 seconds timeout
-    );
+   const response = await axios.put(API_ENDPOINTS.AUTH.UPLOAD_AVATAR_URL, { avatarUrl: formData.avatar }, config);
     
     const updatedUser = response.data.user;
     
@@ -331,7 +324,7 @@ const Profile = ({ currentUser, onUpdateSuccess }) => {
         submitData.password = formData.password;
       }
 
-      const response = await axios.put('http://localhost:3000/api/auth/profile', submitData, config);
+      const response = await axios.put(API_ENDPOINTS.AUTH.PROFILE, submitData, config);
       
       const updatedUser = response.data; 
       localStorage.setItem('user', JSON.stringify(updatedUser));

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './Auth.css';
+import { API_ENDPOINTS } from '../config/api';
 
 const SignUp = ({ onSwitchToLogin }) => {
   const [formData, setFormData] = useState({
@@ -72,7 +73,7 @@ const SignUp = ({ onSwitchToLogin }) => {
     try {
       const { confirmPassword, ...submitData } = formData;
       // SỬA: Không cần gán vào biến response nếu không sử dụng
-      await axios.post('http://localhost:3000/api/auth/signup', submitData);
+      await axios.post(API_ENDPOINTS.AUTH.SIGNUP, submitData);
       
       setFormData({
         name: '',

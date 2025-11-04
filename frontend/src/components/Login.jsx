@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './Auth.css';
+import { API_ENDPOINTS } from '../config/api';
 
 const Login = ({ onLoginSuccess, onSwitchToSignUp, onSwitchToForgot }) => {
   const [formData, setFormData] = useState({
@@ -14,7 +15,7 @@ const Login = ({ onLoginSuccess, onSwitchToSignUp, onSwitchToForgot }) => {
   // Hàm fetch user profile đầy đủ (có avatar)
   const fetchUserProfile = async (token, basicUser) => {
     try {
-      const response = await axios.get('http://localhost:3000/api/auth/profile', {
+      const response = await axios.get(API_ENDPOINTS.AUTH.PROFILE, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -70,7 +71,7 @@ const Login = ({ onLoginSuccess, onSwitchToSignUp, onSwitchToForgot }) => {
     setLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:3000/api/auth/login', formData);
+      const response = await axios.post(API_ENDPOINTS.AUTH.LOGIN, formData);
       console.log('✅ Login response:', response.data);
 
       const responseData = response.data;

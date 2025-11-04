@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './Auth.css';
+import { API_ENDPOINTS } from '../config/api';
 
 const ForgotPassword = ({ onSwitchToLogin }) => { // Xóa onSwitchToReset
   const [email, setEmail] = useState('');
@@ -22,7 +23,7 @@ const ForgotPassword = ({ onSwitchToLogin }) => { // Xóa onSwitchToReset
     setMessage('');
 
     try {
-      const response = await axios.post('http://localhost:3000/api/auth/forgot-password', { email });
+     const response = await axios.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email })
 
       if (response.data.resetToken) {
         // Nếu có token (testing mode)
