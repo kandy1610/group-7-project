@@ -1,10 +1,4 @@
 import React, { useState, useEffect } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  useNavigate,
-} from "react-router-dom";
 import axios from "axios";
 import UserList from "./components/UserList";
 import AddUser from "./components/AddUser";
@@ -12,12 +6,11 @@ import Login from "./components/Login";
 import SignUp from "./components/SignUp";
 import Profile from "./components/Profile";
 import ForgotPassword from "./components/ForgotPassword";
-import ResetPasswordPage from "./components/ResetPasswordPage";
+// import ResetPasswordPage from "./components/ResetPasswordPage";
 import { API_ENDPOINTS } from "./config/api";
 import "./App.css";
 
-// Tách MainApp component để sử dụng với Router
-function MainApp() {
+function App() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -25,7 +18,6 @@ function MainApp() {
   const [showAuth, setShowAuth] = useState(true);
   const [activeTab, setActiveTab] = useState("users");
   const [authMode, setAuthMode] = useState("login");
-  const navigate = useNavigate();
 
   // Hàm fetchUsers - THÊM DEBUG CHI TIẾT
   const fetchUsers = async () => {
@@ -76,6 +68,7 @@ function MainApp() {
       } else if (error.response?.status === 403) {
         setError("Bạn không có quyền truy cập tính năng này.");
       } else if (error.response?.status === 400) {
+        // THÊM XỬ LÝ LỖI 400 CỤ THỂ
         const errorMsg =
           error.response?.data?.message ||
           "Bad request - Kiểm tra token và quyền truy cập";
@@ -106,7 +99,6 @@ function MainApp() {
     setAuthMode("login");
     setUsers([]);
     setActiveTab("users");
-    navigate("/");
   };
 
   // Hàm xóa user
@@ -341,18 +333,6 @@ function MainApp() {
         )}
       </main>
     </div>
-  );
-}
-
-// Component App chính với Router
-function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<MainApp />} />
-        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-      </Routes>
-    </Router>
   );
 }
 
