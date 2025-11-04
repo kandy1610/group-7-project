@@ -11,6 +11,13 @@ exports.getUsers = async (req, res) => {
       name: req.user.name,
     });
 
+    console.log("📝 Request details:", {
+      method: req.method,
+      url: req.originalUrl,
+      params: req.params,
+      query: req.query,
+    });
+
     // Kiểm tra role
     if (req.user.role !== "admin") {
       console.log("❌ Access denied: User is not admin");
